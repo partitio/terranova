@@ -28,6 +28,8 @@ import (
 	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/terraform-providers/terraform-provider-null/null"
+	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/gocty"
 )
 
 // Platform is the platform to be managed by Terraform
@@ -35,7 +37,7 @@ type Platform struct {
 	Code         string
 	Providers    map[string]providers.Factory
 	Provisioners map[string]provisioners.Factory
-	Vars         map[string]interface{}
+	Vars         map[string]cty.Value
 	State        *State
 }
 
@@ -78,21 +80,16 @@ func (p *Platform) AddProvisioner(name string, provisioner terraform.ResourcePro
 
 // BindVars binds the map of variables to the Platform variables, to be used
 // by Terraform
-func (p *Platform) BindVars(vars map[string]interface{}) *Platform {
-	for name, value := range vars {
-		p.Var(name, value)
+func (p *Platform) BindVars(vars interface{}) *Platform {
+	t, err := gocty.ImpliedType(vars)
+	if err != nil {
+		panic(err)
 	}
-
-	return p
-}
-
-// Var set a variable with it's value
-func (p *Platform) Var(name string, value interface{}) *Platform {
-	if len(p.Vars) == 0 {
-		p.Vars = make(map[string]interface{})
+	v, err := gocty.ToCtyValue(vars, t)
+	if err != nil {
+		panic(err)
 	}
-	p.Vars[name] = value
-
+	p.Vars = v.AsValueMap()
 	return p
 }
 

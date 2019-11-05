@@ -29,7 +29,6 @@ import (
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // Apply brings the platform to the desired state. It'll destroy the platform
@@ -184,13 +183,12 @@ func (p *Platform) variables(v map[string]*configs.Variable) (terraform.InputVal
 		}
 
 		val := &terraform.InputValue{
-			Value:      cty.StringVal(fmt.Sprintf("%v", value)),
+			Value:      value,
 			SourceType: terraform.ValueFromCaller,
 		}
 
 		iv[name] = val
 	}
-
 	return iv, nil
 }
 
