@@ -20,8 +20,12 @@ import (
 	"bytes"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
+	"strings"
 
+	"github.com/hashicorp/logutils"
+	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/provisioners"
 	"github.com/hashicorp/terraform/states"
@@ -127,4 +131,21 @@ func (p *Platform) ReadStateFromFile(filename string) (*Platform, error) {
 		return p, err
 	}
 	return p.ReadState(file)
+}
+
+func (p *Platform) SetLogLevel(level string) *Platform {
+	logLevel := logutils.LogLevel(strings.ToUpper(level))
+	ll := logutils.LogLevel("INFO")
+	for _, l := range logging.ValidLevels {
+		if logLevel == l {
+			ll = logLevel
+			break
+		}
+	}
+	log.SetOutput(&logutils.LevelFilter{
+		Levels:   logging.ValidLevels,
+		MinLevel: ll,
+		Writer:   os.Stdout,
+	})
+	return p
 }
