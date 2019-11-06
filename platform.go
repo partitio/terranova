@@ -18,6 +18,7 @@ package terranova
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -43,6 +44,7 @@ type Platform struct {
 	Provisioners map[string]provisioners.Factory
 	Vars         map[string]cty.Value
 	State        *State
+	Error        error
 }
 
 // State is an alias for terraform.State
@@ -59,6 +61,49 @@ func NewPlatform(code string) *Platform {
 	platform.State = states.NewState()
 
 	return platform
+}
+
+func (p *Platform) AddCode(code string) *Platform {
+	p.appendCode(code)
+	return p
+}
+
+func (p *Platform) AddCodeFiles(path ...string) *Platform {
+	c, err := loadCodeFiles(path...)
+	if err != nil {
+
+		return p
+	}
+	p.appendCode(c)
+	return p
+}
+
+func (p *Platform) appendCode(code string) {
+	p.Code += "\n" + code
+}
+
+func (p *Platform) setLastError(err error) {
+	p.Error = fmt.Errorf("last error: %v", err)
+}
+
+func loadCodeFiles(files ...string) (string, error) {
+	parse := func(file string) ([]byte, error) {
+		f, err := os.Open(file)
+		if err != nil {
+			return nil, err
+		}
+		defer f.Close()
+		return ioutil.ReadAll(f)
+	}
+	var b []byte
+	for _, file := range files {
+		f, err := parse(file)
+		if err != nil {
+			return "", err
+		}
+		b = append(b, f...)
+	}
+	return string(b), nil
 }
 
 func (p *Platform) addDefaultProviders() {
@@ -87,11 +132,13 @@ func (p *Platform) AddProvisioner(name string, provisioner terraform.ResourcePro
 func (p *Platform) BindVars(vars interface{}) *Platform {
 	t, err := gocty.ImpliedType(vars)
 	if err != nil {
-		panic(err)
+		p.setLastError(err)
+		return p
 	}
 	v, err := gocty.ToCtyValue(vars, t)
 	if err != nil {
-		panic(err)
+		p.setLastError(err)
+		return p
 	}
 	p.Vars = v.AsValueMap()
 	return p

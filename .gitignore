@@ -1,4 +1,5 @@
 ## Project stuff to ignore
+.idea
 # Binaries files
 /bin/
 /pkg/
