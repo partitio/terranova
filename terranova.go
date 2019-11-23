@@ -102,6 +102,7 @@ func (p *Platform) newContext(destroy bool) (*terraform.Context, error) {
 		Variables:        vars,
 		ProviderResolver: providers.ResolverFixed(p.Providers),
 		Provisioners:     p.Provisioners,
+		Hooks:            []terraform.Hook{&logHook{}},
 	}
 
 	ctx, diags := terraform.NewContext(&ctxOpts)
